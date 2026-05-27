@@ -7,8 +7,9 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.blumlaut.filamenttagwriter.data.local.FilamentEntity
-import com.blumlaut.filamenttagwriter.data.model.Filament
-import com.blumlaut.filamenttagwriter.data.model.generateProductionDateRaw
+import com.blumlaut.filamenttagwriter.data.local.PrinterEntity
+import com.blumlaut.filamenttagwriter.data.model.*
+import com.blumlaut.filamenttagwriter.network.ConnectionState
 import com.blumlaut.filamenttagwriter.nfc.NfcReaderWriter
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -117,28 +118,48 @@ class ScreenshotTest {
     @Test
     fun captureAllScreens() {
         val activity = composeTestRule.activity
+        val app = activity.application as FilamentTagApp
 
         // Seed test filaments directly into the Room database
-        val dao = (activity.application as FilamentTagApp).database.filamentDao()
+        val filamentDao = app.database.filamentDao()
         runBlocking {
-            testFilaments.forEach { dao.insert(it) }
+            testFilaments.forEach { filamentDao.insert(it) }
         }
 
-        // Get the ViewModel from the activity's ViewModelStore to set simulated NFC data
-        val viewModel = try {
-            val activityComponent = activity as androidx.activity.ComponentActivity
-            val store = activityComponent.viewModelStore
-            val keys = store.keys()
-            val vmKey = keys.find { it.contains("FilamentViewModel") } ?: keys.first()
+        // Seed a demo printer with a known ID
+        val printerId = "printer-demo-001"
+        val printerDao = app.database.printerDao()
+        runBlocking {
+            printerDao.insert(
+                PrinterEntity(
+                    id = printerId,
+                    name = "Centauri Carbon",
+                    ipAddress = "192.168.1.100",
+                    port = 3030,
+                    lastSeen = System.currentTimeMillis(),
+                )
+            )
+        }
+
+        // Get the FilamentViewModel to set simulated NFC data
+        val filamentViewModel = try {
+            val store = (activity as androidx.activity.ComponentActivity).viewModelStore
+            val vmKey = store.keys().find { it.contains("FilamentViewModel") } ?: store.keys().first()
             store[vmKey] as FilamentViewModel
         } catch (e: Exception) {
-            Log.e("ScreenshotTest", "Could not access ViewModel", e)
+            Log.e("ScreenshotTest", "Could not access FilamentViewModel", e)
             null
         }
 
-        // Seed a simulated NFC read result so Read screen shows filament data
-        // instead of just "NFC hardware not available"
-        viewModel?.let {
+        // Navigate to Printer first to trigger PrinterViewModel creation in MainActivity
+        composeTestRule.onNodeWithContentDescription("Printer", useUnmergedTree = true).performClick()
+        Thread.sleep(1000)
+
+        // Access MainActivity's PrinterViewModel via test accessor
+        val printerViewModel = activity.getPrinterViewModelForTesting()
+
+        // Seed simulated NFC read result
+        filamentViewModel?.let {
             val demoFilament = Filament(
                 id = UUID.randomUUID().toString(),
                 name = "ELEGOO PLA Silk Turquoise",
@@ -159,11 +180,144 @@ class ScreenshotTest {
             Log.d("ScreenshotTest", "Seeded simulated NFC read result")
         }
 
-        // Wait for the catalog to populate and UI to recompose with NFC data
-        Thread.sleep(1500)
-        composeTestRule.onRoot().assertIsDisplayed() // ensure UI is stable
+        // Inject dummy printer data
+        printerViewModel?.let { vm ->
+            try {
+                val trays = listOf(
+                    CanvasTray(
+                        trayId = 0,
+                        brand = "ELEGOO",
+                        filamentType = "PLA",
+                        filamentName = "PLA Silk Turquoise",
+                        filamentCode = "0xA1B2C3",
+                        filamentColor = "#44F1FF",
+                        minNozzleTemp = 195,
+                        maxNozzleTemp = 230,
+                        status = 1,
+                    ),
+                    CanvasTray(
+                        trayId = 1,
+                        brand = "Prusament",
+                        filamentType = "PETG",
+                        filamentName = "PETG Black",
+                        filamentCode = "0xD4E5F6",
+                        filamentColor = "#000000",
+                        minNozzleTemp = 220,
+                        maxNozzleTemp = 260,
+                        status = 1,
+                    ),
+                    CanvasTray(
+                        trayId = 2,
+                        brand = "ELEGOO",
+                        filamentType = "PLA",
+                        filamentName = "PLA Matte White",
+                        filamentCode = "0x112233",
+                        filamentColor = "#FFFFFF",
+                        minNozzleTemp = 190,
+                        maxNozzleTemp = 230,
+                        status = 1,
+                    ),
+                    CanvasTray(
+                        trayId = 3,
+                        brand = "Hatchbox",
+                        filamentType = "ABS",
+                        filamentName = "ABS Orange",
+                        filamentCode = "",
+                        filamentColor = "#FF8C00",
+                        minNozzleTemp = 230,
+                        maxNozzleTemp = 260,
+                        status = 1,
+                    ),
+                )
+                val materialData = CanvasMaterialData(
+                    activeCanvasId = 0,
+                    activeTrayId = 0,
+                    autoRefill = 0,
+                    canvasList = listOf(
+                        CanvasUnit(
+                            canvasId = 0,
+                            connected = true,
+                            trayList = trays,
+                        )
+                    ),
+                )
+                val printerStatus = PrinterStatus(
+                    currentStatusCodes = listOf(1),
+                    timeLapseStatus = 0,
+                    platformType = 1,
+                    amsConnectStatus = 1,
+                    tempNozzle = 210f,
+                    tempNozzleTarget = 215f,
+                    tempHotbed = 60f,
+                    tempHotbedTarget = 60f,
+                    tempBox = 35f,
+                    tempBoxTarget = 35f,
+                    currentCoord = "120.50,80.30,45.20",
+                    fanModel = 80,
+                    fanAuxiliary = 50,
+                    fanBox = 30,
+                    zOffset = 0.05f,
+                    printInfo = PrintInfo(
+                        status = 1, // Printing
+                        currentLayer = 142,
+                        totalLayer = 318,
+                        currentTicks = 4560,
+                        totalTicks = 10200,
+                        filename = "/sdcard/prints/dragon_vase_200mm.gcode",
+                        taskId = "task-abc-123",
+                        printSpeedPct = 100,
+                        progress = 45,
+                    ),
+                )
+                val attributes = PrinterAttributes(
+                    name = "Centauri Carbon",
+                    machineName = "ELEGOO-Centauri-Carbon",
+                    brandName = "ELEGOO",
+                    protocolVersion = "1.0.0",
+                    firmwareVersion = "1.3.2",
+                    xyzSize = "300x300x350",
+                    mainboardIP = "192.168.1.100",
+                    mainboardMAC = "AA:BB:CC:DD:EE:FF",
+                    mainboardId = "main-001",
+                    networkStatus = "connected",
+                    usbDiskStatus = 1,
+                    capabilities = listOf("ams", "camera", "timelapse"),
+                    supportFileType = listOf("gcode", "gco"),
+                    cameraStatus = 1,
+                    remainingMemory = 5368709120L, // 5GB
+                    devicesStatus = DevicesStatus(
+                        sgStatus = 1,
+                        zMotorStatus = 1,
+                        xMotorStatus = 1,
+                        yMotorStatus = 1,
+                    ),
+                )
+                vm.injectTestData(
+                    printerId = printerId,
+                    connectionState = ConnectionState.Connected,
+                    materialData = materialData,
+                    status = printerStatus,
+                    attributes = attributes,
+                )
+                Log.d("ScreenshotTest", "Seeded dummy printer data")
+            } catch (e: Exception) {
+                Log.e("ScreenshotTest", "Failed to seed dummy printer data", e)
+            }
+        }
 
-        // 1. Capture Read screen (shows simulated NFC read result)
+        // Wait for catalog to populate and UI to recompose
+        Thread.sleep(1500)
+        composeTestRule.onRoot().assertIsDisplayed()
+
+        // 3. Capture Printer screen first (we're already on it, dummy data injected above)
+        Thread.sleep(500)
+        composeTestRule.onRoot().captureToImage().saveAs("printer")
+
+        // Navigate back to Read
+        composeTestRule.onNodeWithContentDescription("Read", useUnmergedTree = true).performClick()
+        Thread.sleep(800)
+
+        // 1. Capture Read screen (shows simulated NFC read result, no NFC error)
         composeTestRule.onRoot().captureToImage().saveAs("read")
 
         // 2. Navigate to Catalog and capture
@@ -171,12 +325,12 @@ class ScreenshotTest {
         Thread.sleep(800)
         composeTestRule.onRoot().captureToImage().saveAs("catalog")
 
-        // 3. Navigate to Printer and capture
-        composeTestRule.onNodeWithContentDescription("Printer", useUnmergedTree = true).performClick()
+        // 4. Navigate to Write tab (shows Write screen with NFC ready state)
+        composeTestRule.onNodeWithContentDescription("Write", useUnmergedTree = true).performClick()
         Thread.sleep(800)
-        composeTestRule.onRoot().captureToImage().saveAs("printer")
+        composeTestRule.onRoot().captureToImage().saveAs("write")
 
-        // 4. Navigate back to Catalog, then open the form via FAB
+        // 5. Navigate back to Catalog, then open the form via FAB
         composeTestRule.onNodeWithContentDescription("Catalog", useUnmergedTree = true).performClick()
         Thread.sleep(800)
         composeTestRule.onNodeWithContentDescription("Add Filament", useUnmergedTree = true).performClick()

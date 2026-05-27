@@ -67,6 +67,26 @@ class MainActivity : ComponentActivity() {
     private lateinit var nfcManager: NfcManager
     private var nfcAdapter: NfcAdapter? = null
 
+    /**
+     * Test-only accessor for the PrinterViewModel.
+     * Allows injection of dummy data for screenshot generation.
+     */
+    internal fun getPrinterViewModelForTesting(): PrinterViewModel = printerViewModel
+
+    /**
+     * Detect if running under Android instrumentation test (e.g. ScreenshotTest).
+     * When true, NFC is treated as available so the Read/Write screens show
+     * their normal UI instead of the "NFC not available" error banner.
+     */
+    private val isInstrumentationTest: Boolean
+        get() = try {
+            // Check if the test runner class is loadable
+            Class.forName("androidx.test.runner.AndroidJUnitRunner")
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -123,8 +143,8 @@ class MainActivity : ComponentActivity() {
                             composable("read") {
                                 ReadScreen(
                                     viewModel = viewModel,
-                                    nfcAvailable = nfcManager.nfcAvailable,
-                                    nfcEnabled = nfcManager.nfcEnabled,
+                                    nfcAvailable = isInstrumentationTest || nfcManager.nfcAvailable,
+                                    nfcEnabled = isInstrumentationTest || nfcManager.nfcEnabled,
                                 )
                             }
                             composable("catalog") {
@@ -142,8 +162,8 @@ class MainActivity : ComponentActivity() {
                                 WriteScreen(
                                     navController = navController,
                                     viewModel = viewModel,
-                                    nfcAvailable = nfcManager.nfcAvailable,
-                                    nfcEnabled = nfcManager.nfcEnabled,
+                                    nfcAvailable = isInstrumentationTest || nfcManager.nfcAvailable,
+                                    nfcEnabled = isInstrumentationTest || nfcManager.nfcEnabled,
                                 )
                             }
                             composable("form/new") {

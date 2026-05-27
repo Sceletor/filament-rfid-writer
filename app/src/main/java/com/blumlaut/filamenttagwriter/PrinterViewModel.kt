@@ -82,6 +82,23 @@ class PrinterViewModel(private val database: FilamentDatabase) : ViewModel() {
     // --- Import status ---
     var importingPrinterId: MutableState<String?> = mutableStateOf(null)
 
+    /**
+     * Test-only method to inject dummy printer data for screenshot generation.
+     * No-op in production (never called).
+     */
+    fun injectTestData(
+        printerId: String,
+        connectionState: ConnectionState,
+        materialData: CanvasMaterialData,
+        status: PrinterStatus,
+        attributes: PrinterAttributes,
+    ) {
+        _connectionStates.value = mapOf(printerId to connectionState)
+        _materialData.value = mapOf(printerId to materialData)
+        _printerStatus.value = mapOf(printerId to status)
+        _printerAttributes.value = mapOf(printerId to attributes)
+    }
+
     // --- Cached catalog for tray duplicate checks ---
     private val _catalogFilaments = mutableStateOf<List<FilamentEntity>>(emptyList())
 
