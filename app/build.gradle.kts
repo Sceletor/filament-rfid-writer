@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.InputStream
 import java.net.URL
 
@@ -110,6 +111,17 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
     dependsOn("downloadSpoolmanDB")
 }
 
+/*
+ * Screenshot capture workflow:
+ *   1. ./gradlew :app:connectedAndroidTest --no-configuration-cache \
+ *        -PtestInstrumentationRunnerArguments.class=com.blumlaut.filamenttagwriter.ScreenshotTest
+ *   2. adb logcat -d | grep ScreenshotTest > /tmp/screenshot_logs.txt
+ *   3. Run scripts/capture-screenshots.sh to extract base64 from logcat and decode PNGs
+ *
+ * Screenshots are encoded as base64 in logcat because the test APK is uninstalled
+ * before Gradle doLast hooks can pull files via adb run-as.
+ */
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -136,4 +148,8 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Compose UI screenshot tests
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test)
 }

@@ -34,6 +34,10 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
+# Test
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version = "1.9.0" }
+androidx-compose-ui-test = { group = "androidx.compose.ui", name = "ui-test", version = "1.9.0" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.3.20" }
