@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.graphics.Bitmap
 import android.provider.MediaStore
 import android.util.Log
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
@@ -110,6 +111,10 @@ class ScreenshotTest {
 
     @Test
     fun captureAllScreens() {
+        val theme = InstrumentationRegistry.getArguments().getString("theme", "dark")
+        val suffix = "_${theme}"
+        Log.d("ScreenshotTest", "Theme: $theme, suffix: $suffix")
+
         val activity = composeTestRule.activity
         val app = activity.application as FilamentTagApp
 
@@ -304,31 +309,31 @@ class ScreenshotTest {
 
         // 3. Capture Printer screen first (we're already on it, dummy data injected above)
         Thread.sleep(500)
-        composeTestRule.onRoot().captureToImage().saveAs("printer")
+        composeTestRule.onRoot().captureToImage().saveAs("printer$suffix")
 
         // Navigate back to Read
         composeTestRule.onNodeWithContentDescription("Read", useUnmergedTree = true).performClick()
         Thread.sleep(800)
 
         // 1. Capture Read screen (shows simulated NFC read result, no NFC error)
-        composeTestRule.onRoot().captureToImage().saveAs("read")
+        composeTestRule.onRoot().captureToImage().saveAs("read$suffix")
 
         // 2. Navigate to Catalog and capture
         composeTestRule.onNodeWithContentDescription("Catalog", useUnmergedTree = true).performClick()
         Thread.sleep(800)
-        composeTestRule.onRoot().captureToImage().saveAs("catalog")
+        composeTestRule.onRoot().captureToImage().saveAs("catalog$suffix")
 
         // 4. Navigate to Write tab (shows Write screen with NFC ready state)
         composeTestRule.onNodeWithContentDescription("Write", useUnmergedTree = true).performClick()
         Thread.sleep(800)
-        composeTestRule.onRoot().captureToImage().saveAs("write")
+        composeTestRule.onRoot().captureToImage().saveAs("write$suffix")
 
         // 5. Navigate back to Catalog, then open the form via FAB
         composeTestRule.onNodeWithContentDescription("Catalog", useUnmergedTree = true).performClick()
         Thread.sleep(800)
         composeTestRule.onNodeWithContentDescription("Add Filament", useUnmergedTree = true).performClick()
         Thread.sleep(800)
-        composeTestRule.onRoot().captureToImage().saveAs("form")
+        composeTestRule.onRoot().captureToImage().saveAs("form$suffix")
     }
 
     private fun ImageBitmap.saveAs(tag: String) {
