@@ -2,40 +2,34 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="512"
+    android:viewportHeight="512">
 
-  <!-- Filament coils -->
-  <path android:fillColor="#00000000"
-      android:strokeColor="#E9D5FF" android:strokeWidth="2.5" android:strokeAlpha="0.9"
-      android:pathData="M54,22 A32,32 0 1,1 54,87 A32,32 0 1,1 54,22" />
-  <path android:fillColor="#00000000"
-      android:strokeColor="#E9D5FF" android:strokeWidth="2" android:strokeAlpha="0.75"
-      android:pathData="M54,28 A26,26 0 1,1 54,81 A26,26 0 1,1 54,28" />
-  <path android:fillColor="#00000000"
-      android:strokeColor="#C084FC" android:strokeWidth="2" android:strokeAlpha="0.6"
-      android:pathData="M54,34 A20,20 0 1,1 54,75 A20,20 0 1,1 54,34" />
-  <path android:fillColor="#00000000"
-      android:strokeColor="#C084FC" android:strokeWidth="2" android:strokeAlpha="0.45"
-      android:pathData="M54,40 A14,14 0 1,1 54,69 A14,14 0 1,1 54,40" />
-  <path android:fillColor="#00000000"
-      android:strokeColor="#A855F7" android:strokeWidth="2" android:strokeAlpha="0.3"
-      android:pathData="M54,46 A8,8 0 1,1 54,63 A8,8 0 1,1 54,46" />
+  <!-- Scaled and shifted to fit within adaptive icon safe area (66dp center of 108dp) -->
+  <group android:scaleX="0.75" android:scaleY="0.75" android:translateX="45" android:translateY="64">
+    <!-- content center at (281,256) * 0.75 = (211,192), translate to (256,256) -->
 
-  <!-- Spool hub -->
-  <path android:fillColor="#C084FC"
-      android:pathData="M54,46 A8,8 0 1,1 54,62 A8,8 0 1,1 54,46" />
-  <path android:fillColor="#4338CA"
-      android:pathData="M54,50 A4,4 0 1,1 54,58 A4,4 0 1,1 54,50" />
+    <!-- Filament spool -->
+    <!-- Outer flange -->
+    <path
+        android:pathData="M80,256 a100,100,0,1,0,200,0 a100,100,0,1,0,-200,0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="14"/>
+    <!-- Filament body (solid purple, gradient not supported in VectorDrawable strokes) -->
+    <path
+        android:pathData="M112,256 a68,68,0,1,0,136,0 a68,68,0,1,0,-136,0"
+        android:strokeColor="#9775FA"
+        android:strokeWidth="14"/>
+    <!-- Inner hub -->
+    <path
+        android:pathData="M152,256 a28,28,0,1,0,56,0 a28,28,0,1,0,-56,0"
+        android:fillColor="#FFFFFF"/>
 
-  <!-- RFID waves (combined into single path to share stroke properties) -->
-  <path android:fillColor="#00000000"
-      android:strokeColor="#FFFFFF" android:strokeWidth="2.5" android:strokeAlpha="0.9"
-      android:pathData="M82,36 A18,18 0 0,1 82,72" />
-  <path android:fillColor="#00000000"
-      android:strokeColor="#FFFFFF" android:strokeWidth="2.5" android:strokeAlpha="0.65"
-      android:pathData="M89,29 A27,27 0 0,1 89,79" />
-  <path android:fillColor="#00000000"
-      android:strokeColor="#FFFFFF" android:strokeWidth="2.5" android:strokeAlpha="0.35"
-      android:pathData="M96,22 A36,36 0 0,1 96,86" />
+    <!-- RFID signal waves -->
+    <path
+        android:pathData="M310,220 A96,96,0,0,1,310,292 M350,184 A144,144,0,0,1,350,328 M390,148 A192,192,0,0,1,390,364"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"/>
+  </group>
 </vector>
