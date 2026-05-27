@@ -1,6 +1,8 @@
 package com.blumlaut.filamenttagwriter
 
+import android.content.ContentValues
 import android.graphics.Bitmap
+import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -14,22 +16,13 @@ import com.blumlaut.filamenttagwriter.nfc.NfcReaderWriter
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
-import java.io.ByteArrayOutputStream
-import java.util.Base64
 import java.util.UUID
 
 /**
  * Instrumented test that captures screenshots of each app screen.
+ * Writes PNG files to DCIM/Screenshots via MediaStore (survives teardown).
  *
- * Screenshots are encoded as base64 in logcat because the test APK is
- * uninstalled before Gradle hooks can pull files via adb run-as.
- *
- * Run:
- *   ./gradlew :app:connectedAndroidTest --no-configuration-cache \
- *     -PtestInstrumentationRunnerArguments.class=com.blumlaut.filamenttagwriter.ScreenshotTest
- *
- * Extract:
- *   adb logcat -d | grep ScreenshotTest > /tmp/screenshot_logs.txt
+ * Run via script:
  *   ./scripts/capture-screenshots.sh
  */
 class ScreenshotTest {
@@ -341,18 +334,20 @@ class ScreenshotTest {
     private fun ImageBitmap.saveAs(tag: String) {
         val bitmap = asAndroidBitmap()
         try {
-            val baos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-            val bytes = baos.toByteArray()
-            val base64 = Base64.getEncoder().encodeToString(bytes)
-            Log.d("ScreenshotTest", "===SCREENSHOT_START:$tag===")
-            // Log base64 in chunks to avoid logcat line length limits
-            val chunkSize = 900
-            for (i in (0 until base64.length step chunkSize)) {
-                Log.d("ScreenshotTest", base64.substring(i, minOf(i + chunkSize, base64.length)))
+            val context = composeTestRule.activity
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, "screenshot_${tag}.png")
+                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/Screenshots")
             }
-            Log.d("ScreenshotTest", "===SCREENSHOT_END:$tag===")
-            Log.d("ScreenshotTest", "Screenshot $tag: ${bytes.size} bytes")
+            val resolver = context.contentResolver
+            val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                ?: throw Exception("Failed to create MediaStore entry")
+            resolver.openOutputStream(uri)?.use { os ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, os)
+                os.flush()
+            }
+            Log.d("ScreenshotTest", "Screenshot $tag saved to ${uri.path}")
         } catch (e: Exception) {
             Log.e("ScreenshotTest", "Failed to capture $tag", e)
             throw e

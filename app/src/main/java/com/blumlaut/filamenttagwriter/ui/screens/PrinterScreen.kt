@@ -649,79 +649,82 @@ private fun TraySlot(
     }
 
     Row(
-        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        // Slot number badge
-        MaterialTheme(
-            colorScheme = MaterialTheme.colorScheme.copy(
-                primary = MaterialTheme.colorScheme.outlineVariant,
-            ),
-        ) {
-            Surface(
-                modifier = Modifier.size(24.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "${tray.trayId + 1}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Colored circle (filament swatch)
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(trayColor)
-                .then(
-                    if (tray.hasFilament) {
-                        Modifier.border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                    } else {
-                        Modifier.border(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
-                    }
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (tray.hasFilament) {
-                if (isActive) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.25f)),
-                    )
-                }
-                Text(
-                    text = tray.filamentType.take(6),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isLightColor(colorRgb)) Color.Black else Color.White,
-                    fontWeight = FontWeight.Bold,
-                )
-            } else {
-                Icon(
-                    Icons.Filled.Circle,
-                    contentDescription = "Empty",
-                    tint = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Tray details + import button
+        // Left side: badge + swatch (fixed width)
         Column(
-            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            // Slot number badge
+            MaterialTheme(
+                colorScheme = MaterialTheme.colorScheme.copy(
+                    primary = MaterialTheme.colorScheme.outlineVariant,
+                ),
+            ) {
+                Surface(
+                    modifier = Modifier.size(24.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "${tray.trayId + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+
+            // Colored circle (filament swatch)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(trayColor)
+                    .then(
+                        if (tray.hasFilament) {
+                            Modifier.border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                        } else {
+                            Modifier.border(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                        }
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (tray.hasFilament) {
+                    if (isActive) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.25f)),
+                        )
+                    }
+                    Text(
+                        text = tray.filamentType.take(6),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isLightColor(colorRgb)) Color.Black else Color.White,
+                        fontWeight = FontWeight.Bold,
+                    )
+                } else {
+                    Icon(
+                        Icons.Filled.Circle,
+                        contentDescription = "Empty",
+                        tint = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Right side: text details (constrained to remaining width)
+        Column(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             verticalArrangement = Arrangement.Center,
         ) {
             if (tray.hasFilament) {
@@ -733,8 +736,11 @@ private fun TraySlot(
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
-                    if (isActive) {
+                if (isActive) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
                         Text(
                             text = "●",
                             style = MaterialTheme.typography.labelSmall,
@@ -745,13 +751,6 @@ private fun TraySlot(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    if (tray.hasNfcTag) {
-                        Text(
-                            text = "NFC",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
