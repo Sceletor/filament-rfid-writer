@@ -1,16 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Spool: outer ring -->
-  <circle cx="154" cy="256" r="88" fill="none" stroke="currentColor" stroke-width="10"/>
-  <!-- Spool: middle ring -->
-  <circle cx="154" cy="256" r="58" fill="none" stroke="currentColor" stroke-width="10"/>
-  <!-- Spool: inner hub -->
-  <circle cx="154" cy="256" r="24" fill="currentColor"/>
+  <!-- Solid background — Play Store requires no transparency -->
+  <rect width="512" height="512" fill="#1B1464"/>
 
-  <!-- RFID signal waves -->
-  <path d="M 275 220 A 96 96 0 0 1 275 292"
-        fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/>
-  <path d="M 310 184 A 144 144 0 0 1 310 328"
-        fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/>
-  <path d="M 345 148 A 192 192 0 0 1 345 364"
-        fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/>
+  <!-- Filament spool (left half) -->
+  <!-- Outer flange -->
+  <circle cx="160" cy="256" r="100" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+  <!-- Filament body (gradient for depth) -->
+  <circle cx="160" cy="256" r="68" fill="none" stroke="url(#filamentGrad)" stroke-width="14"/>
+  <!-- Inner hub -->
+  <circle cx="160" cy="256" r="28" fill="#FFFFFF"/>
+
+  <!-- RFID signal waves (right half) -->
+  <path d="M 280 220 A 96 96 0 0 1 280 292
+           M 320 184 A 144 144 0 0 1 320 328
+           M 360 148 A 192 192 0 0 1 360 364"
+        fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+
+  <defs>
+    <linearGradient id="filamentGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9775FA"/>
+      <stop offset="100%" stop-color="#651FFF"/>
+    </linearGradient>
+  </defs>
 </svg>
