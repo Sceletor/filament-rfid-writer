@@ -2,18 +2,18 @@
   <!-- Solid background — Play Store requires no transparency -->
   <rect width="512" height="512" fill="#1B1464"/>
 
-  <!-- Filament spool (left half) -->
+  <!-- Filament spool -->
   <!-- Outer flange -->
-  <circle cx="160" cy="256" r="100" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+  <circle cx="180" cy="256" r="100" fill="none" stroke="#FFFFFF" stroke-width="14"/>
   <!-- Filament body (gradient for depth) -->
-  <circle cx="160" cy="256" r="68" fill="none" stroke="url(#filamentGrad)" stroke-width="14"/>
+  <circle cx="180" cy="256" r="68" fill="none" stroke="url(#filamentGrad)" stroke-width="14"/>
   <!-- Inner hub -->
-  <circle cx="160" cy="256" r="28" fill="#FFFFFF"/>
+  <circle cx="180" cy="256" r="28" fill="#FFFFFF"/>
 
-  <!-- RFID signal waves (right half) -->
-  <path d="M 280 220 A 96 96 0 0 1 280 292
-           M 320 184 A 144 144 0 0 1 320 328
-           M 360 148 A 192 192 0 0 1 360 364"
+  <!-- RFID signal waves -->
+  <path d="M 310 220 A 96 96 0 0 1 310 292
+           M 350 184 A 144 144 0 0 1 350 328
+           M 390 148 A 192 192 0 0 1 390 364"
         fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
 
   <defs>
