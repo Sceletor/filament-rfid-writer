@@ -183,7 +183,7 @@ fun ReadScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by name, brand, material...") },
+                        placeholder = { Text("Search filaments...") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.extraLarge,
