@@ -109,6 +109,9 @@ class MainActivity : ComponentActivity() {
                     // Determine if bottom bar should be shown
                     val showBottomBar = currentRoute in BOTTOM_NAV_ITEMS.map { it.route }
 
+                    // Sync ViewModel tab state so NFC intents are routed to the correct action
+                    currentRoute?.let { viewModel.setCurrentTab(it) }
+
                     Scaffold(
                         bottomBar = {
                             if (showBottomBar) {
