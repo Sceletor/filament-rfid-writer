@@ -1,5 +1,6 @@
 package com.blumlaut.filamenttagwriter.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +40,19 @@ fun ReadScreen(
     val readResult = viewModel.nfcReadResult.value
     val isReading = viewModel.isReadingTag.value
     val spoolmanMatch = viewModel.spoolmanMatchResult.value
+
+    // SpoolmanDB search dialog state
+    var showSearchDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<com.blumlaut.filamenttagwriter.data.model.SpoolmanFilament>>(emptyList()) }
+
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.length >= 2) {
+            searchResults = viewModel.searchSpoolman(searchQuery, limit = 15)
+        } else {
+            searchResults = emptyList()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -85,9 +100,7 @@ fun ReadScreen(
                             }
                         },
                         onSearchCatalog = {
-                            // Navigate to form with pre-filled data — handled by caller
-                            // For now just clear match to show search hint
-                            viewModel.spoolmanMatchResult.value = null
+                            showSearchDialog = true
                         },
                     )
 
@@ -152,6 +165,72 @@ fun ReadScreen(
                 null -> {}
             }
         }
+    }
+
+    // SpoolmanDB search dialog
+    if (showSearchDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSearchDialog = false
+                searchQuery = ""
+                searchResults = emptyList()
+            },
+            title = {
+                Text("Search SpoolmanDB")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search by name, brand, material...") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.extraLarge,
+                    )
+                    if (searchResults.isNotEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 240.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            items(searchResults, key = { it.id }) { entry ->
+                                SpoolmanSearchResultItem(
+                                    entry = entry,
+                                    onSelect = {
+                                        val updated = viewModel.applySpoolmanMatch(entry)
+                                        if (updated != null) {
+                                            viewModel.nfcReadResult.value = NfcReaderWriter.ReadResult.Success(updated)
+                                            viewModel.spoolmanMatchResult.value = null
+                                        }
+                                        showSearchDialog = false
+                                        searchQuery = ""
+                                        searchResults = emptyList()
+                                    },
+                                )
+                            }
+                        }
+                    } else if (searchQuery.length >= 2) {
+                        Text(
+                            "No results found",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSearchDialog = false
+                        searchQuery = ""
+                        searchResults = emptyList()
+                    },
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
+                    Text("Close")
+                }
+            },
+        )
     }
 }
 
@@ -358,6 +437,46 @@ private fun SpoolmanCandidateCard(
                     contentDescription = "Use this name",
                 )
             }
+        }
+    }
+}
+
+/**
+ * Single search result in the SpoolmanDB search dialog.
+ */
+@Composable
+private fun SpoolmanSearchResultItem(
+    entry: com.blumlaut.filamenttagwriter.data.model.SpoolmanFilament,
+    onSelect: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable(onClick = onSelect),
+    ) {
+        entry.colorHex?.let { hex ->
+            hex.parseHexColor().let { rgb ->
+                ColorSwatch(
+                    rgb = rgb,
+                    size = 28.dp,
+                    borderColor = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "${entry.manufacturer} ${entry.name}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = entry.material,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
