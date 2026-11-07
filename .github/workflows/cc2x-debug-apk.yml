@@ -25,11 +25,12 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
+      - name: Set up Android SDK without obsolete tools package
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
       - name: Install Android SDK platform 37
-        run: |
-          echo "Android SDK: $ANDROID_HOME"
-          command -v sdkmanager
-          sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
+        run: sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
       - name: Assemble debug APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
       - name: Calculate APK checksum
