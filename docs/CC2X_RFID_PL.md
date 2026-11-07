@@ -25,14 +25,14 @@ Zapis obecnej wersji nie jest transakcją atomową: przerwanie po częściowym z
 
 ## Walidacja
 
-Kodek CC2X ma osobny test JVM w \`tools/CC2XCodecSmokeTest.kt\`. Dla JDK21/Kotlin:
+Kodek CC2X ma osobny test JVM w `tools/CC2XCodecSmokeTest.kt`. Dla JDK21/Kotlin:
 
-\`\`\`sh
+```sh
 kotlinc app/src/main/java/com/blumlaut/filamenttagwriter/data/model/TagExtraMetadata.kt tools/CC2XCodecSmokeTest.kt -include-runtime -d /tmp/cc2x.jar
 java -jar /tmp/cc2x.jar
-\`\`\`
+```
 
-Pełna kompilacja Androida: \`./gradlew :app:assembleDebug\` (wymaga Android SDK 37, Gradle i pobrania zależności). **Pełny APK ani test fizycznego odczytu/zapisu NFC nie zostały jeszcze wykonane.**
+Pełna kompilacja Androida: `./gradlew :app:assembleDebug` (wymaga Android SDK 37, Gradle i pobrania zależności). **Pełny APK ani test fizycznego odczytu/zapisu NFC nie zostały jeszcze wykonane.**
 
 ## Następny krok
 
