@@ -63,7 +63,7 @@ object TagExtraMetadata {
     fun canOverwrite(data: ByteArray): Boolean {
         if (data.size != CAPACITY) return false
         if (data.all { it == 0.toByte() }) return true
-        return try { decode(data) != null } catch (_: IllegalArgumentException) { false }
+        return try { decode(data) != null } catch (_: Exception) { false }
     }
 
     private fun utf8(data: ByteArray, offset: Int, length: Int): String {
