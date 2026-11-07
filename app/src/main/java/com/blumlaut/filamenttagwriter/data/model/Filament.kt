@@ -31,6 +31,7 @@ import java.util.Calendar
 data class Filament(
     val id: String = "",                              // internal DB ID (UUID)
     val name: String = "",                            // user-friendly name
+    val brand: String = "",                           // true NFC extension manufacturer
     val manufacturerCode: Int = 0xEEEEEEEE.toInt(),   // 32-bit manufacturer identifier
     val material: String = "PLA",                     // material name (lookup key)
     val subtypeCode: Short = 0x0000,                  // 16-bit numeric subtype code
@@ -57,6 +58,7 @@ val Filament.diameterString: String
 fun Filament.toEntity(): FilamentEntity = FilamentEntity(
     id = id,
     name = name,
+    brand = brand,
     manufacturerCode = manufacturerCode,
     material = material,
     subtypeCode = subtypeCode,

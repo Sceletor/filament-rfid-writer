@@ -343,6 +343,18 @@ fun FilamentFormScreen(
                             singleLine = true,
                         )
 
+                        // Optional true manufacturer, written alongside full name into CC2X.
+                        OutlinedTextField(
+                            value = filament.brand,
+                            onValueChange = { filament = filament.copy(brand = it) },
+                            label = { Text("Brand / Manufacturer") },
+                            placeholder = { Text("e.g. SUNLU") },
+                            supportingText = { Text("CC2X tag extension; stock CANVAS may display ELEGOO. Brand + name: max 50 UTF-8 bytes.") },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+
                         // Material
                         GenericDropdown(
                             label = "Material",

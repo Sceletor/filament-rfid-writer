@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class FilamentEntity(
     @PrimaryKey val id: String,
     val name: String,
+    val brand: String,
     val manufacturerCode: Int,
     val material: String,
     val subtypeCode: Short,

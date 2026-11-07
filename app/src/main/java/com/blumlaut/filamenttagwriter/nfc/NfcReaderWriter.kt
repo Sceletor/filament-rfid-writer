@@ -5,6 +5,7 @@ import android.nfc.tech.MifareUltralight
 import android.util.Log
 import com.blumlaut.filamenttagwriter.data.model.Epc256Encoder
 import com.blumlaut.filamenttagwriter.data.model.Filament
+import com.blumlaut.filamenttagwriter.data.model.TagExtraMetadata
 import java.util.Locale
 
 /**
@@ -66,6 +67,13 @@ object NfcReaderWriter {
 
             val pages = readFilamentPages(ml)
             Log.d(TAG, "Read ${pages.size} page blocks")
+            // Optional CC2X: an unreadable extension never breaks stock tag decoding.
+            val extra = try {
+                readExtraPages(ml)?.let { TagExtraMetadata.decode(it) }
+            } catch (e: Exception) {
+                Log.w(TAG, "CC2X extension unavailable: ${e.message}")
+                null
+            }
 
             ml.close()
             Log.d(TAG, "Tag connection closed")
@@ -78,7 +86,11 @@ object NfcReaderWriter {
                 Log.d(TAG, "Raw filament data: $rawBytes")
 
                 try {
-                    val filament = Epc256Encoder.decodeNtagBlocks(pages)
+                    val standardFilament = Epc256Encoder.decodeNtagBlocks(pages)
+                    val filament = if (extra == null) standardFilament else standardFilament.copy(
+                        brand = extra.brand,
+                        name = extra.name
+                    )
                     Log.d(TAG, "Decoded: ${filament.material} / ${filament.subtype} / " +
                         "${filament.color} / ${filament.diameter}mm / ${filament.weight}g")
                     ReadResult.Success(filament)
@@ -194,6 +206,18 @@ object NfcReaderWriter {
         return pages
     }
 
+    // Optional 60-byte area is NTAG213/215 user pages 25..39.
+    // readPages() can return multiple pages; take just the first four bytes.
+    private fun readExtraPages(ml: MifareUltralight): ByteArray? {
+        val data = ByteArray(TagExtraMetadata.CAPACITY)
+        for (page in TagExtraMetadata.FIRST_PAGE..TagExtraMetadata.LAST_PAGE) {
+            val bytes = ml.readPages(page) ?: return null
+            if (bytes.size < 4) return null
+            bytes.copyInto(data, (page - TagExtraMetadata.FIRST_PAGE) * 4, 0, 4)
+        }
+        return data
+    }
+
     private data class WriteAttemptResult(val success: Boolean, val errorMessage: String?)
 
     private fun tryWriteBlocks(ml: MifareUltralight, filament: Filament, authenticate: Boolean): WriteAttemptResult {
@@ -207,6 +231,13 @@ object NfcReaderWriter {
                 Log.d(TAG, "Authentication successful")
             }
 
+            // Preflight before ANY writes: never overwrite non-CC2X vendor data.
+            val extension = TagExtraMetadata.encode(filament.brand, filament.name)
+            val previous = readExtraPages(ml)
+                ?: return WriteAttemptResult(false, "Cannot inspect spare NFC pages 25..39")
+            if (!TagExtraMetadata.canOverwrite(previous)) {
+                return WriteAttemptResult(false, "Spare pages contain unknown/corrupt data; refusing to overwrite")
+            }
             val blocks = Epc256Encoder.encodeNtagBlocks(filament)
             Log.d(TAG, "Writing ${blocks.size} blocks to tag")
             for ((page, block) in blocks) {
@@ -215,6 +246,15 @@ object NfcReaderWriter {
                 ml.writePage(page, block)
                 Log.d(TAG, "  Page $page written OK")
                 Thread.sleep(10)
+            }
+            // Write metadata in previously validated user pages; never touch config.
+            for (page in TagExtraMetadata.FIRST_PAGE..TagExtraMetadata.LAST_PAGE) {
+                val offset = (page - TagExtraMetadata.FIRST_PAGE) * 4
+                ml.writePage(page, extension.copyOfRange(offset, offset + 4))
+                Thread.sleep(10)
+            }
+            if (readExtraPages(ml)?.contentEquals(extension) != true) {
+                return WriteAttemptResult(false, "CC2X read-back verification failed")
             }
             WriteAttemptResult(true, null)
         } catch (e: Exception) {

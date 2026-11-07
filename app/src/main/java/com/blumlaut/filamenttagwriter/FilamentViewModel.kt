@@ -271,6 +271,7 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
         return Filament(
             id = UUID.randomUUID().toString(),
             name = "${entry.manufacturer} ${entry.name}",
+            brand = entry.manufacturer,
             manufacturerCode = 0xEEEEEEEE.toInt(),
             material = material,
             subtypeCode = subtypeCode,
@@ -314,6 +315,7 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
         return Filament(
             id = id,
             name = name,
+            brand = brand,
             manufacturerCode = manufacturerCode,
             material = material,
             subtypeCode = subtypeCode,
