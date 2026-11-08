@@ -1,5 +1,6 @@
 package com.blumlaut.filamenttagwriter
 
+import android.content.Context
 import android.nfc.Tag
 import android.util.Log
 import androidx.compose.runtime.MutableState
@@ -18,6 +19,7 @@ import com.blumlaut.filamenttagwriter.data.model.SpoolmanLoader
 import com.blumlaut.filamenttagwriter.data.model.SpoolmanLoader.SpoolmanMatchResult
 import com.blumlaut.filamenttagwriter.data.model.SpoolmanMaterialMapper
 import com.blumlaut.filamenttagwriter.nfc.NfcReaderWriter
+import com.blumlaut.filamenttagwriter.nfc.NfcTagTools
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,9 +29,46 @@ import java.util.UUID
 /**
  * ViewModel for the filament catalog and NFC operations.
  */
+enum class TagToolMode { IDLE, READ_MEMORY, CLEAR_FILAMENT }
+
 class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
 
     private val dao = database.filamentDao()
+
+    val tagToolMode: MutableState<TagToolMode> = mutableStateOf(TagToolMode.IDLE)
+    val tagToolBusy: MutableState<Boolean> = mutableStateOf(false)
+    val tagToolResult: MutableState<String?> = mutableStateOf(null)
+    val autoReadEverywhere: MutableState<Boolean> = mutableStateOf(false)
+    val redirectToRead: MutableState<Int> = mutableStateOf(0)
+
+    fun loadNfcPrefs(context: Context) {
+        autoReadEverywhere.value = context.getSharedPreferences("cc2x_settings", Context.MODE_PRIVATE)
+            .getBoolean("auto_read_everywhere", false)
+    }
+
+    fun setAutoReadEverywhere(context: Context, enabled: Boolean) {
+        autoReadEverywhere.value = enabled
+        context.getSharedPreferences("cc2x_settings", Context.MODE_PRIVATE)
+            .edit().putBoolean("auto_read_everywhere", enabled).apply()
+    }
+
+    fun executeTagTool(tag: Tag) {
+        val action = tagToolMode.value
+        if (action == TagToolMode.IDLE || tagToolBusy.value) return
+        tagToolMode.value = TagToolMode.IDLE // one-shot, never re-run on a duplicate NFC event
+        tagToolBusy.value = true
+        tagToolResult.value = null
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (action == TagToolMode.READ_MEMORY) NfcTagTools.readMemory(tag)
+                    else NfcTagTools.clearFilamentProfile(tag)
+                }.fold(onSuccess = { it }, onFailure = { "NFC operation failed: " + it.message })
+            }
+            tagToolResult.value = outcome
+            tagToolBusy.value = false
+        }
+    }
 
     /** Flow of all saved filaments from the database. */
     private val _catalog = kotlinx.coroutines.flow.MutableStateFlow<List<Filament>>(emptyList())

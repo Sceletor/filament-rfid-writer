@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.DeviceHub
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SimCardDownload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -21,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -33,6 +35,7 @@ import com.blumlaut.filamenttagwriter.ui.screens.FilamentFormScreen
 import com.blumlaut.filamenttagwriter.ui.screens.PrinterScreen
 import com.blumlaut.filamenttagwriter.ui.screens.ReadScreen
 import com.blumlaut.filamenttagwriter.ui.screens.WriteScreen
+import com.blumlaut.filamenttagwriter.ui.screens.TagToolsScreen
 import com.blumlaut.filamenttagwriter.ui.theme.FilamentTagWriterTheme
 
 private data class BottomNavItem(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
@@ -42,6 +45,7 @@ private val BOTTOM_NAV_ITEMS = listOf(
     BottomNavItem("catalog", "Catalog", Icons.AutoMirrored.Filled.List),
     BottomNavItem("printer", "Printer", Icons.Default.DeviceHub),
     BottomNavItem("write", "Write", Icons.Default.SimCardDownload),
+    BottomNavItem("tools", "Tools", Icons.Default.Settings),
 )
 
 class MainActivity : ComponentActivity() {
@@ -92,6 +96,7 @@ class MainActivity : ComponentActivity() {
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         nfcManager = NfcManager(this)
+        viewModel.loadNfcPrefs(this)
 
         // Process any NFC intent that launched the app
         if (nfcAdapter?.isEnabled == true) {
@@ -105,6 +110,11 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val currentBackStackEntry = navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry.value?.destination?.route
+
+                    val redirect = viewModel.redirectToRead.value
+                    LaunchedEffect(redirect) {
+                        if (redirect > 0) navController.navigate("read") { launchSingleTop = true }
+                    }
 
                     // Determine if bottom bar should be shown
                     val showBottomBar = currentRoute in BOTTOM_NAV_ITEMS.map { it.route }
@@ -159,6 +169,13 @@ class MainActivity : ComponentActivity() {
                             composable("printer") {
                                 PrinterScreen(
                                     viewModel = printerViewModel,
+                                )
+                            }
+                            composable("tools") {
+                                TagToolsScreen(
+                                    viewModel = viewModel,
+                                    nfcAvailable = isInstrumentationTest || nfcManager.nfcAvailable,
+                                    nfcEnabled = isInstrumentationTest || nfcManager.nfcEnabled,
                                 )
                             }
                             composable("write") {
@@ -230,8 +247,20 @@ class MainActivity : ComponentActivity() {
                         android.util.Log.d("MainActivity", "[NFC-Debug] Tag on Write tab, triggering write")
                         viewModel.writeTag(it)
                     }
+                    "tools" -> {
+                        if (viewModel.tagToolMode.value != TagToolMode.IDLE) viewModel.executeTagTool(it)
+                        else if (viewModel.autoReadEverywhere.value) {
+                            viewModel.readTag(it)
+                            viewModel.redirectToRead.value++
+                        }
+                    }
                     else -> {
-                        android.util.Log.d("MainActivity", "[NFC-Debug] Ignoring tag on non-NFC tab: ${viewModel.currentTab.value}")
+                        if (viewModel.autoReadEverywhere.value) {
+                            viewModel.readTag(it)
+                            viewModel.redirectToRead.value++
+                        } else {
+                            android.util.Log.d("MainActivity", "NFC tag ignored outside Read / Write; enable auto-read across tabs in Tools")
+                        }
                     }
                 }
             }
