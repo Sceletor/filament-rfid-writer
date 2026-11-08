@@ -1,5 +1,7 @@
 package com.blumlaut.filamenttagwriter.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -12,12 +14,42 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.blumlaut.filamenttagwriter.FilamentViewModel
 import com.blumlaut.filamenttagwriter.TagToolMode
+import com.blumlaut.filamenttagwriter.data.model.FilamentCatalogBackup
 
 /** NFC tools always require explicit arming before any tag is touched. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagToolsScreen(viewModel: FilamentViewModel, nfcAvailable: Boolean, nfcEnabled: Boolean) {
     val context = LocalContext.current
+    val exportFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            val result = runCatching {
+                val stream = context.contentResolver.openOutputStream(uri)
+                    ?: error("Cannot open output document")
+                stream.bufferedWriter(Charsets.UTF_8).use {
+                    it.write(FilamentCatalogBackup.encode(viewModel.catalog.value))
+                }
+                viewModel.catalog.value.size
+            }
+            viewModel.backupResult.value = result.fold(
+                onSuccess = { "Exported " + it + " profiles to JSON." },
+                onFailure = { "Export failed: " + it.message },
+            )
+        }
+    }
+    val importFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val result = runCatching {
+                val stream = context.contentResolver.openInputStream(uri)
+                    ?: error("Cannot read chosen document")
+                stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            }
+            result.fold(
+                onSuccess = { viewModel.importCatalogBackup(it) },
+                onFailure = { viewModel.backupResult.value = "Import failed: " + it.message },
+            )
+        }
+    }
     var confirmErase by remember { mutableStateOf(false) }
     val mode = viewModel.tagToolMode.value
     val busy = viewModel.tagToolBusy.value
@@ -35,6 +67,21 @@ fun TagToolsScreen(viewModel: FilamentViewModel, nfcAvailable: Boolean, nfcEnabl
                 Switch(checked = viewModel.autoReadEverywhere.value,
                     onCheckedChange = { viewModel.setAutoReadEverywhere(context, it) })
             }
+
+            HorizontalDivider()
+            Text("Catalog backup", style = MaterialTheme.typography.titleMedium)
+            Text("Export all filament profiles to JSON or import a CC2X backup. Import adds new records without deleting the existing catalog.",
+                style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { exportFile.launch("cc2x-filaments.json") },
+            ) { Text("Export App Database (JSON)") }
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { importFile.launch(arrayOf("application/json", "text/plain")) },
+            ) { Text("Import App Database (JSON)") }
+            val backupStatus = viewModel.backupResult.value
+            if (!backupStatus.isNullOrBlank()) Text(backupStatus, style = MaterialTheme.typography.bodySmall)
 
             HorizontalDivider()
             Text("Memory viewer", style = MaterialTheme.typography.titleMedium)

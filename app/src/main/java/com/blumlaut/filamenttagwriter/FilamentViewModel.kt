@@ -11,6 +11,7 @@ import com.blumlaut.filamenttagwriter.data.local.FilamentDatabase
 import com.blumlaut.filamenttagwriter.data.local.FilamentEntity
 import com.blumlaut.filamenttagwriter.data.model.Epc256Encoder
 import com.blumlaut.filamenttagwriter.data.model.Filament
+import com.blumlaut.filamenttagwriter.data.model.FilamentCatalogBackup
 import com.blumlaut.filamenttagwriter.data.model.Materials
 import com.blumlaut.filamenttagwriter.data.model.generateProductionDateRaw
 import com.blumlaut.filamenttagwriter.data.model.toEntity
@@ -38,6 +39,24 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
     val tagToolMode: MutableState<TagToolMode> = mutableStateOf(TagToolMode.IDLE)
     val tagToolBusy: MutableState<Boolean> = mutableStateOf(false)
     val tagToolResult: MutableState<String?> = mutableStateOf(null)
+    val backupResult: MutableState<String?> = mutableStateOf(null)
+
+    fun importCatalogBackup(json: String) {
+        backupResult.value = "Importing..."
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val records = FilamentCatalogBackup.decode(json)
+                    for (record in records) dao.insert(record.toEntity())
+                    records.size
+                }
+            }
+            backupResult.value = result.fold(
+                onSuccess = { count -> "Imported " + count + " profiles (existing records preserved)." },
+                onFailure = { error -> "Import rejected: " + error.message },
+            )
+        }
+    }
     val autoReadEverywhere: MutableState<Boolean> = mutableStateOf(false)
     val redirectToRead: MutableState<Int> = mutableStateOf(0)
 
