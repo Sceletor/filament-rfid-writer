@@ -147,6 +147,7 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
         // but use SpoolmanDB name and any better temp/color data
         return current.copy(
             name = fromSpoolman.name,
+            brand = fromSpoolman.brand,
         )
     }
 
@@ -281,6 +282,8 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
             colorModifier = 0x00,
             minTemp = minTemp,
             maxTemp = maxTemp,
+            bedMinTemp = (entry.bedTempRange?.first ?: entry.bedTemp ?: 0).coerceIn(0, 150).toShort(),
+            bedMaxTemp = (entry.bedTempRange?.second ?: entry.bedTemp ?: 0).coerceIn(0, 150).toShort(),
             diameter = entry.diameter.coerceIn(0.1f, 10.0f),
             weight = entry.weight.toInt().coerceIn(0, 65535),
             productionDateRaw = prodRaw,
@@ -325,6 +328,8 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
             colorModifier = colorModifier,
             minTemp = minTemp,
             maxTemp = maxTemp,
+            bedMinTemp = bedMinTemp,
+            bedMaxTemp = bedMaxTemp,
             diameter = diameter,
             weight = weight,
             productionDateRaw = productionDateRaw,

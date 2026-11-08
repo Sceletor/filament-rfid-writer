@@ -41,6 +41,8 @@ data class Filament(
     val colorModifier: Byte = 0x00,                   // color modifier byte
     val minTemp: Short = 190,                         // min extruder temperature °C
     val maxTemp: Short = 230,                         // max extruder temperature °C
+    val bedMinTemp: Short = 0,                       // CC2X NFC extension only
+    val bedMaxTemp: Short = 0,
     val diameter: Float = 1.75f,                      // mm (stored as hundredths on tag)
     val weight: Int = 1000,                           // grams
     val productionDateRaw: Short = 0,                 // raw 16-bit production date from tag
@@ -67,6 +69,8 @@ fun Filament.toEntity(): FilamentEntity = FilamentEntity(
     colorModifier = colorModifier,
     minTemp = minTemp,
     maxTemp = maxTemp,
+    bedMinTemp = bedMinTemp,
+    bedMaxTemp = bedMaxTemp,
     diameter = diameter,
     weight = weight,
     productionDateRaw = productionDateRaw,

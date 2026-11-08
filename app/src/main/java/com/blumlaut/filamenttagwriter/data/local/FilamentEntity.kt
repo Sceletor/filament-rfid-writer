@@ -16,6 +16,8 @@ data class FilamentEntity(
     val colorModifier: Byte,
     val minTemp: Short,
     val maxTemp: Short,
+    val bedMinTemp: Short,
+    val bedMaxTemp: Short,
     val diameter: Float,
     val weight: Int,
     val productionDateRaw: Short,
