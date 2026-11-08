@@ -89,7 +89,9 @@ object NfcReaderWriter {
                     val standardFilament = Epc256Encoder.decodeNtagBlocks(pages)
                     val filament = if (extra == null) standardFilament else standardFilament.copy(
                         brand = extra.brand,
-                        name = extra.name
+                        name = extra.name,
+                        bedMinTemp = (extra.bedMinTemp ?: 0).toShort(),
+                        bedMaxTemp = (extra.bedMaxTemp ?: 0).toShort()
                     )
                     Log.d(TAG, "Decoded: ${filament.material} / ${filament.subtype} / " +
                         "${filament.color} / ${filament.diameter}mm / ${filament.weight}g")
@@ -232,7 +234,10 @@ object NfcReaderWriter {
             }
 
             // Preflight before ANY writes: never overwrite non-CC2X vendor data.
-            val extension = TagExtraMetadata.encode(filament.brand, filament.name)
+            val extension = TagExtraMetadata.encode(
+                filament.brand, filament.name,
+                filament.bedMinTemp.toInt(), filament.bedMaxTemp.toInt()
+            )
             val previous = readExtraPages(ml)
                 ?: return WriteAttemptResult(false, "Cannot inspect spare NFC pages 25..39")
             if (!TagExtraMetadata.canOverwrite(previous)) {
