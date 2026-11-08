@@ -54,6 +54,10 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            // Dedicated test package: can coexist with the original application
+            // and will not overwrite the existing on-device filament catalog.
+            applicationIdSuffix = ".cc2x"
+            versionNameSuffix = "-cc2x-test"
         }
     }
 

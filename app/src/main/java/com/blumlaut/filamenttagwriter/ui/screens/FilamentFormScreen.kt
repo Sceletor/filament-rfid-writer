@@ -343,6 +343,18 @@ fun FilamentFormScreen(
                             singleLine = true,
                         )
 
+                        // Optional true manufacturer, written alongside full name into CC2X.
+                        OutlinedTextField(
+                            value = filament.brand,
+                            onValueChange = { filament = filament.copy(brand = it) },
+                            label = { Text("Brand / Manufacturer") },
+                            placeholder = { Text("e.g. SUNLU") },
+                            supportingText = { Text("CC2X tag extension; stock CANVAS may display ELEGOO. Brand + name: max 50 UTF-8 bytes.") },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+
                         // Material
                         GenericDropdown(
                             label = "Material",
@@ -463,6 +475,7 @@ fun FilamentFormScreen(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
 
+                        Text("Nozzle / Extruder", style = MaterialTheme.typography.labelLarge)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = filament.minTemp.toString(),
@@ -493,6 +506,33 @@ fun FilamentFormScreen(
                                 singleLine = true,
                             )
                         }
+                        Text("Heated Bed (CC2X extension only)", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = filament.bedMinTemp.toString(),
+                                onValueChange = { input ->
+                                    input.toIntOrNull()?.let { value ->
+                                        filament = filament.copy(bedMinTemp = value.coerceIn(0, 150).toShort())
+                                    }
+                                },
+                                label = { Text("Bed Min (°C)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = filament.bedMaxTemp.toString(),
+                                onValueChange = { input ->
+                                    input.toIntOrNull()?.let { value ->
+                                        filament = filament.copy(bedMaxTemp = value.coerceIn(0, 150).toShort())
+                                    }
+                                },
+                                label = { Text("Bed Max (°C)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                            )
+                        }
+                        Text("Stored only in CC2X NFC metadata; stock CANVAS does not use these values.",
+                            style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

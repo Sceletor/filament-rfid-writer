@@ -31,6 +31,7 @@ import java.util.Calendar
 data class Filament(
     val id: String = "",                              // internal DB ID (UUID)
     val name: String = "",                            // user-friendly name
+    val brand: String = "",                           // true NFC extension manufacturer
     val manufacturerCode: Int = 0xEEEEEEEE.toInt(),   // 32-bit manufacturer identifier
     val material: String = "PLA",                     // material name (lookup key)
     val subtypeCode: Short = 0x0000,                  // 16-bit numeric subtype code
@@ -40,6 +41,8 @@ data class Filament(
     val colorModifier: Byte = 0x00,                   // color modifier byte
     val minTemp: Short = 190,                         // min extruder temperature °C
     val maxTemp: Short = 230,                         // max extruder temperature °C
+    val bedMinTemp: Short = 0,                       // CC2X NFC extension only
+    val bedMaxTemp: Short = 0,
     val diameter: Float = 1.75f,                      // mm (stored as hundredths on tag)
     val weight: Int = 1000,                           // grams
     val productionDateRaw: Short = 0,                 // raw 16-bit production date from tag
@@ -57,6 +60,7 @@ val Filament.diameterString: String
 fun Filament.toEntity(): FilamentEntity = FilamentEntity(
     id = id,
     name = name,
+    brand = brand,
     manufacturerCode = manufacturerCode,
     material = material,
     subtypeCode = subtypeCode,
@@ -65,6 +69,8 @@ fun Filament.toEntity(): FilamentEntity = FilamentEntity(
     colorModifier = colorModifier,
     minTemp = minTemp,
     maxTemp = maxTemp,
+    bedMinTemp = bedMinTemp,
+    bedMaxTemp = bedMaxTemp,
     diameter = diameter,
     weight = weight,
     productionDateRaw = productionDateRaw,

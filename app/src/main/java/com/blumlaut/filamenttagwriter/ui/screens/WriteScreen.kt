@@ -106,7 +106,8 @@ fun WriteScreen(
                             Text(
                                 text = "${filament.subtype} | ${filament.diameterString} | " +
                                     "${filament.weight}g | ${filament.color} | " +
-                                    "${filament.minTemp}–${filament.maxTemp}°C",
+                                    "${filament.minTemp}–${filament.maxTemp}°C nozzle | " +
+                                    "${filament.bedMinTemp}–${filament.bedMaxTemp}°C bed",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )

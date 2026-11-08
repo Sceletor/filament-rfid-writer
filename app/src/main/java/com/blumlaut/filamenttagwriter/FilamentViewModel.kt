@@ -1,5 +1,6 @@
 package com.blumlaut.filamenttagwriter
 
+import android.content.Context
 import android.nfc.Tag
 import android.util.Log
 import androidx.compose.runtime.MutableState
@@ -10,6 +11,7 @@ import com.blumlaut.filamenttagwriter.data.local.FilamentDatabase
 import com.blumlaut.filamenttagwriter.data.local.FilamentEntity
 import com.blumlaut.filamenttagwriter.data.model.Epc256Encoder
 import com.blumlaut.filamenttagwriter.data.model.Filament
+import com.blumlaut.filamenttagwriter.data.model.FilamentCatalogBackup
 import com.blumlaut.filamenttagwriter.data.model.Materials
 import com.blumlaut.filamenttagwriter.data.model.generateProductionDateRaw
 import com.blumlaut.filamenttagwriter.data.model.toEntity
@@ -18,6 +20,7 @@ import com.blumlaut.filamenttagwriter.data.model.SpoolmanLoader
 import com.blumlaut.filamenttagwriter.data.model.SpoolmanLoader.SpoolmanMatchResult
 import com.blumlaut.filamenttagwriter.data.model.SpoolmanMaterialMapper
 import com.blumlaut.filamenttagwriter.nfc.NfcReaderWriter
+import com.blumlaut.filamenttagwriter.nfc.NfcTagTools
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,9 +30,64 @@ import java.util.UUID
 /**
  * ViewModel for the filament catalog and NFC operations.
  */
+enum class TagToolMode { IDLE, READ_MEMORY, CLEAR_FILAMENT }
+
 class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
 
     private val dao = database.filamentDao()
+
+    val tagToolMode: MutableState<TagToolMode> = mutableStateOf(TagToolMode.IDLE)
+    val tagToolBusy: MutableState<Boolean> = mutableStateOf(false)
+    val tagToolResult: MutableState<String?> = mutableStateOf(null)
+    val backupResult: MutableState<String?> = mutableStateOf(null)
+
+    fun importCatalogBackup(json: String) {
+        backupResult.value = "Importing..."
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val records = FilamentCatalogBackup.decode(json)
+                    for (record in records) dao.insert(record.toEntity())
+                    records.size
+                }
+            }
+            backupResult.value = result.fold(
+                onSuccess = { count -> "Imported " + count + " profiles (existing records preserved)." },
+                onFailure = { error -> "Import rejected: " + error.message },
+            )
+        }
+    }
+    val autoReadEverywhere: MutableState<Boolean> = mutableStateOf(false)
+    val redirectToRead: MutableState<Int> = mutableStateOf(0)
+
+    fun loadNfcPrefs(context: Context) {
+        autoReadEverywhere.value = context.getSharedPreferences("cc2x_settings", Context.MODE_PRIVATE)
+            .getBoolean("auto_read_everywhere", false)
+    }
+
+    fun setAutoReadEverywhere(context: Context, enabled: Boolean) {
+        autoReadEverywhere.value = enabled
+        context.getSharedPreferences("cc2x_settings", Context.MODE_PRIVATE)
+            .edit().putBoolean("auto_read_everywhere", enabled).apply()
+    }
+
+    fun executeTagTool(tag: Tag) {
+        val action = tagToolMode.value
+        if (action == TagToolMode.IDLE || tagToolBusy.value) return
+        tagToolMode.value = TagToolMode.IDLE // one-shot, never re-run on a duplicate NFC event
+        tagToolBusy.value = true
+        tagToolResult.value = null
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (action == TagToolMode.READ_MEMORY) NfcTagTools.readMemory(tag)
+                    else NfcTagTools.clearFilamentProfile(tag)
+                }.fold(onSuccess = { it }, onFailure = { "NFC operation failed: " + it.message })
+            }
+            tagToolResult.value = outcome
+            tagToolBusy.value = false
+        }
+    }
 
     /** Flow of all saved filaments from the database. */
     private val _catalog = kotlinx.coroutines.flow.MutableStateFlow<List<Filament>>(emptyList())
@@ -147,6 +205,7 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
         // but use SpoolmanDB name and any better temp/color data
         return current.copy(
             name = fromSpoolman.name,
+            brand = fromSpoolman.brand,
         )
     }
 
@@ -271,6 +330,7 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
         return Filament(
             id = UUID.randomUUID().toString(),
             name = "${entry.manufacturer} ${entry.name}",
+            brand = entry.manufacturer,
             manufacturerCode = 0xEEEEEEEE.toInt(),
             material = material,
             subtypeCode = subtypeCode,
@@ -280,6 +340,8 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
             colorModifier = 0x00,
             minTemp = minTemp,
             maxTemp = maxTemp,
+            bedMinTemp = (entry.bedTempRange?.first ?: entry.bedTemp ?: 0).coerceIn(0, 150).toShort(),
+            bedMaxTemp = (entry.bedTempRange?.second ?: entry.bedTemp ?: 0).coerceIn(0, 150).toShort(),
             diameter = entry.diameter.coerceIn(0.1f, 10.0f),
             weight = entry.weight.toInt().coerceIn(0, 65535),
             productionDateRaw = prodRaw,
@@ -314,6 +376,7 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
         return Filament(
             id = id,
             name = name,
+            brand = brand,
             manufacturerCode = manufacturerCode,
             material = material,
             subtypeCode = subtypeCode,
@@ -323,6 +386,8 @@ class FilamentViewModel(private val database: FilamentDatabase) : ViewModel() {
             colorModifier = colorModifier,
             minTemp = minTemp,
             maxTemp = maxTemp,
+            bedMinTemp = bedMinTemp,
+            bedMaxTemp = bedMaxTemp,
             diameter = diameter,
             weight = weight,
             productionDateRaw = productionDateRaw,

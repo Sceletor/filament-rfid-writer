@@ -1,0 +1,41 @@
+name: Publish CC2X v2 test APK (public download)
+
+on:
+  push:
+    branches:
+      - feature/cc2x-rfid-brand-name-v1
+    paths:
+      - .github/workflows/publish-cc2x-v2-test.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified APK from successful build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 42434704654 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name CC2X-Android-Debug-APK \
+            --dir "$RUNNER_TEMP/cc2x"
+          test -s "$RUNNER_TEMP/cc2x/app-debug.apk"
+          printf '%s  %s\n' \
+            '2ffa8da95f0808c643d8adb06786369188bf92917678924306b90c1bf85996e2' \
+            "$RUNNER_TEMP/cc2x/app-debug.apk" | sha256sum -c -
+
+      - name: Create public prerelease with direct APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create cc2x-v2.0.0-test.1 \
+            "$RUNNER_TEMP/cc2x/app-debug.apk#CC2X-RFID-Writer-v2-Test.apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "CC2X RFID Writer v2 — NFC Tools (test)" \
+            --notes "Experimental Android APK for NFC testing on spare NTAG213/215 tags. Adds manufacturer and filament name, heated-bed temperatures, NFC memory viewer, manual test-tag filament-profile clearing, auto-read and JSON backup. Stock ELEGOO CANVAS does not decode CC2X fields. SHA-256: 2ffa8da95f0808c643d8adb06786369188bf92917678924306b90c1bf85996e2" \
+            --prerelease
